@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import fs from "fs-extra";
 import * as gitUtils from "./gitUtils";
-import { runPublish, runVersion } from "./run";
+import { runCreateRelease, runPublish, runVersion } from "./run";
 import readChangesetState from "./readChangesetState";
 
 const getOptionalInput = (name: string) => core.getInput(name) || undefined;
@@ -35,11 +35,13 @@ const getOptionalInput = (name: string) => core.getInput(name) || undefined;
 
   let { changesets } = await readChangesetState();
 
+  let releaseBranch = core.getInput("releaseBranch");
   let publishScript = core.getInput("publish");
   let hasChangesets = changesets.length !== 0;
   const hasNonEmptyChangesets = changesets.some(
     (changeset) => changeset.releases.length > 0
   );
+  let hasReleaseBranch = !!releaseBranch;
   let hasPublishScript = !!publishScript;
 
   core.setOutput("published", "false");
@@ -47,6 +49,12 @@ const getOptionalInput = (name: string) => core.getInput(name) || undefined;
   core.setOutput("hasChangesets", String(hasChangesets));
 
   switch (true) {
+    case !hasChangesets && hasReleaseBranch:
+      core.info(
+        "No changesets found. Attempting to create a PR to release branch without publishing"
+      );
+      runCreateRelease({ githubToken });
+      return;
     case !hasChangesets && !hasPublishScript:
       core.info("No changesets present or were removed by merging release PR. Not publishing because no publish script found.");
       return;

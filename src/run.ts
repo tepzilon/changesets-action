@@ -423,3 +423,21 @@ export async function runVersion({
     };
   }
 }
+
+type CreateReleaseOptions = {
+  githubToken: string;
+  cwd?: string;
+};
+
+export async function runCreateRelease({
+  githubToken,
+  cwd = process.cwd(),
+}: CreateReleaseOptions) {
+  const octokit = setupOctokit(githubToken);
+
+  let { packages, tool } = await getPackages(cwd);
+  packages.forEach((pkg) => {
+    core.info(`Package name: ${pkg.packageJson.name}`);
+  });
+  core.info(`Tool: ${tool}`);
+}
